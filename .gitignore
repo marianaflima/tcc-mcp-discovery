@@ -6,8 +6,11 @@ dist/
 wheels/
 *.egg-info
 
-#file archives
+#file folders
 notebooks/
 
 # Virtual environments
 .venv
+
+# Environment variables
+.env
