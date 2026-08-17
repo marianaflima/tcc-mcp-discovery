@@ -104,8 +104,7 @@ def format_output(result_list: list[dict]) -> list[AcademicRecord]:
 
         records.append(AcademicRecord(**record))
 
-    # with open("records_europe.json", "w", encoding="utf-8") as file:
+    # with open("records_europe_pmc.json", "w", encoding="utf-8") as file:
     #     json.dump(records, file, default=json_default, indent=4, ensure_ascii=False)
 
     return records
-
