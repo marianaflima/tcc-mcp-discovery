@@ -1,6 +1,14 @@
 from pyalex import Works
 from src.core.models import AcademicRecord
 
+# import os
+# import pyalex
+# from dotenv import load_dotenv
+
+# load_dotenv()
+
+# pyalex.config.api_key = os.getenv("OPENALEX_API_KEY")
+
 def search_open_alex(search_string: str, initial_year: int) -> list[dict]:
 
     response = (
