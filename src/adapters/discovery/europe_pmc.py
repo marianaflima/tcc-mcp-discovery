@@ -1,12 +1,11 @@
+import json
+import requests
+from dataclasses import asdict
 from datetime import date, datetime
 from src.core.models import AcademicRecord
-
-# import json
-from dataclasses import asdict
-import requests
+from tqdm import tqdm
 
 BASE_URL = "https://www.ebi.ac.uk/europepmc/webservices/rest/search"
-
 
 def search_europe_pmc(
     query: str,
@@ -21,31 +20,63 @@ def search_europe_pmc(
         f"FIRST_PDATE:[{limit_date}-01-01 TO {current_date}]"
     )
 
-    params = {
-        "query": url_query,
-        "format": "json",
-        "resultType": "core",
-        "synonym": "TRUE",
-        "cursorMark": "*",
-        "sort": "PUB_YEAR desc",
-        "pageSize": page_size,
-    }
-
-    resp = requests.get(
-        BASE_URL,
-        params=params,
-        timeout=300,
+    progress = tqdm(
+        total=None,
+        desc="Artigos obtidos",
+        unit=" artigos",
     )
 
-    resp.raise_for_status()
+    cursor_mark = None
+    response = []
 
-    return resp.json()["resultList"]["result"]
+    print("\n\nComeçando obtenção dos artigos...\n")
+    while True:
+
+        params = {
+            "query": url_query,
+            "format": "json",
+            "resultType": "core",
+            "synonym": "TRUE",
+            "cursorMark": "*" if cursor_mark is None else cursor_mark,
+            "sort": "PUB_YEAR desc",
+            "pageSize": page_size,
+        }
+
+        pre_resp = requests.get(
+            BASE_URL,
+            params=params,
+            timeout=300,
+        )
+
+        pre_resp.raise_for_status()
+
+        data = pre_resp.json()
+
+        if progress.total is None:
+            progress.total = data["hitCount"]
+            progress.refresh()
+
+        resp_list = data["resultList"]["result"]
+
+        response.extend(resp_list)
+        progress.update(len(resp_list))
+
+        next_cursor = data.get("nextCursorMark", "")
+
+        if cursor_mark == next_cursor:
+            break
+
+        cursor_mark = next_cursor
+
+    progress.close()
+
+    return response
 
 
 def get_record_source(data) -> str | None:
-    if data.get("journalInfo", {}).get("journal", {}).get("title", ""):
+    if data.get("journalInfo", {}).get("journal", {}).get("title", "") is not None:
         return data.get("journalInfo", {}).get("journal", {}).get("title", "")
-    elif data.get("bookOrReportDetails", {}).get("publisher", ""):
+    elif data.get("bookOrReportDetails", {}).get("publisher", "") is not None:
         return data.get("bookOrReportDetails", {}).get("publisher", "")
     else:
         return None
@@ -90,6 +121,8 @@ def json_default(obj):
 def format_output(result_list: list[dict]) -> list[AcademicRecord]:
     records = []
 
+    print("Processando artigos obtidos...\n")
+
     for result in result_list:
         record = {
             "source": get_record_source(result),
@@ -104,7 +137,11 @@ def format_output(result_list: list[dict]) -> list[AcademicRecord]:
 
         records.append(AcademicRecord(**record))
 
-    # with open("records_europe_pmc.json", "w", encoding="utf-8") as file:
-    #     json.dump(records, file, default=json_default, indent=4, ensure_ascii=False)
+    with open("records_europe_pmc.json", "w", encoding="utf-8") as file:
+        json.dump(records, file, default=json_default, indent=4, ensure_ascii=False)
 
-    return records
+    # return records
+
+
+records = search_europe_pmc("autism AND snp", 2024)
+format_output(records)
