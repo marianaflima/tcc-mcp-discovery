@@ -6,8 +6,12 @@ dist/
 wheels/
 *.egg-info
 
-#file archives
+#files and folders to be ignored
 notebooks/
+.ai-jail
 
 # Virtual environments
 .venv
+
+# Environment variables
+.env
